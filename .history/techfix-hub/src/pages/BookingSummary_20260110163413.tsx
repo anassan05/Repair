@@ -1,0 +1,353 @@
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
+
+interface Booking {
+  id: string;
+  service: string;
+  date: string;
+  time: string;
+  status: 'pending' | 'assigned' | 'in-progress' | 'completed' | 'cancelled';
+  workerName?: string;
+  workerPhone?: string;
+  amount: number;
+  otp?: string;
+  completionImage?: string;
+  rating?: number;
+  usedComponents?: boolean;
+  componentDetails?: string;
+  warrantyMonths?: number;
+  warrantyExpiry?: string;
+}
+
+export default function BookingSummary() {
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  // Mock data - replace with actual API call
+  const [bookings] = useState<Booking[]>([
+    {
+      id: 'BK045',
+      service: 'AC Repair',
+      date: '2026-01-09',
+      time: '10:00 AM',
+      status: 'completed',
+      workerName: 'Rajesh Kumar',
+      workerPhone: '+91 9876543210',
+      amount: 3500,
+      completionImage: '/placeholder-completion.jpg',
+      rating: 5,
+      usedComponents: true,
+      componentDetails: 'Compressor, Gas Refill',
+      warrantyMonths: 12,
+      warrantyExpiry: '2027-01-09',
+    },
+    {
+      id: 'BK046',
+      service: 'Washing Machine Service',
+      date: '2026-01-11',
+      time: '2:00 PM',
+      status: 'assigned',
+      workerName: 'Amit Patel',
+      workerPhone: '+91 9876543211',
+      amount: 800,
+      otp: '123456',
+    },
+    {
+      id: 'BK047',
+      service: 'Refrigerator Repair',
+      date: '2026-01-12',
+      time: '11:00 AM',
+      status: 'pending',
+      amount: 1500,
+    },
+  ]);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'default';
+      case 'in-progress': return 'secondary';
+      case 'assigned': return 'outline';
+      case 'pending': return 'secondary';
+      case 'cancelled': return 'destructive';
+      default: return 'default';
+    }
+  };
+
+  const viewDetails = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setDetailsOpen(true);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold mb-2">My Bookings</h1>
+          <p className="text-muted-foreground">View and track all your service bookings</p>
+        </div>
+
+        <Tabs defaultValue="all" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="all">All Bookings</TabsTrigger>
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+            <TabsTrigger value="warranty">With Warranty</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="space-y-4">
+            {bookings.map((booking) => (
+              <Card key={booking.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-xl">{booking.service}</CardTitle>
+                      <CardDescription>Booking #{booking.id}</CardDescription>
+                    </div>
+                    <Badge variant={getStatusColor(booking.status)}>
+                      {booking.status}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2 text-sm">
+                      <p><strong>Date:</strong> {new Date(booking.date).toLocaleDateString()}</p>
+                      <p><strong>Time:</strong> {booking.time}</p>
+                      <p><strong>Amount:</strong> ₹{booking.amount}</p>
+                      {booking.workerName && (
+                        <>
+                          <p><strong>Worker:</strong> {booking.workerName}</p>
+                          <p><strong>Contact:</strong> {booking.workerPhone}</p>
+                        </>
+                      )}
+                      {booking.otp && (
+                        <p><strong>OTP:</strong> <code className="bg-gray-100 px-2 py-1 rounded">{booking.otp}</code></p>
+                      )}
+                    </div>
+                    
+                    {booking.status === 'completed' && (
+                      <div className="space-y-2">
+                        {booking.rating && (
+                          <p><strong>Rating:</strong> {'⭐'.repeat(booking.rating)}</p>
+                        )}
+                        {booking.usedComponents && (
+                          <div className="p-3 bg-blue-50 rounded-lg">
+                            <p className="font-semibold text-sm mb-1">Components Replaced</p>
+                            <p className="text-sm">{booking.componentDetails}</p>
+                            <p className="text-sm mt-1">
+                              <strong>Warranty:</strong> {booking.warrantyMonths} months
+                            </p>
+                            <p className="text-sm">
+                              <strong>Valid Until:</strong> {booking.warrantyExpiry && new Date(booking.warrantyExpiry).toLocaleDateString()}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-4"
+                    onClick={() => viewDetails(booking)}
+                  >
+                    View Full Details
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </TabsContent>
+
+          <TabsContent value="active">
+            {bookings.filter(b => ['pending', 'assigned', 'in-progress'].includes(b.status)).map((booking) => (
+              <Card key={booking.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-xl">{booking.service}</CardTitle>
+                      <CardDescription>Booking #{booking.id}</CardDescription>
+                    </div>
+                    <Badge variant={getStatusColor(booking.status)}>
+                      {booking.status}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Date:</strong> {new Date(booking.date).toLocaleDateString()}</p>
+                    <p><strong>Time:</strong> {booking.time}</p>
+                    {booking.workerName && <p><strong>Worker:</strong> {booking.workerName}</p>}
+                    {booking.otp && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                        <p className="font-semibold mb-1">Your OTP</p>
+                        <p className="text-2xl font-mono">{booking.otp}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Share this OTP with the worker to confirm service completion</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </TabsContent>
+
+          <TabsContent value="completed">
+            {bookings.filter(b => b.status === 'completed').map((booking) => (
+              <Card key={booking.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-xl">{booking.service}</CardTitle>
+                      <CardDescription>Booking #{booking.id}</CardDescription>
+                    </div>
+                    <Badge variant="default">Completed</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {booking.completionImage && (
+                      <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                        <img src={booking.completionImage} alt="Completion" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="space-y-2 text-sm">
+                      <p><strong>Completed:</strong> {new Date(booking.date).toLocaleDateString()}</p>
+                      <p><strong>Worker:</strong> {booking.workerName}</p>
+                      <p><strong>Amount Paid:</strong> ₹{booking.amount}</p>
+                      {booking.rating && <p><strong>Your Rating:</strong> {'⭐'.repeat(booking.rating)}</p>}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </TabsContent>
+
+          <TabsContent value="warranty">
+            {bookings.filter(b => b.usedComponents).map((booking) => (
+              <Card key={booking.id} className="hover:shadow-lg transition-shadow border-blue-200">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-xl">{booking.service}</CardTitle>
+                      <CardDescription>Booking #{booking.id}</CardDescription>
+                    </div>
+                    <Badge variant="secondary">Under Warranty</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <h4 className="font-semibold mb-2">Warranty Information</h4>
+                      <div className="space-y-1 text-sm">
+                        <p><strong>Components:</strong> {booking.componentDetails}</p>
+                        <p><strong>Warranty Period:</strong> {booking.warrantyMonths} months</p>
+                        <p><strong>Valid Until:</strong> {booking.warrantyExpiry && new Date(booking.warrantyExpiry).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="text-sm space-y-1">
+                      <p><strong>Completed:</strong> {new Date(booking.date).toLocaleDateString()}</p>
+                      <p><strong>Worker:</strong> {booking.workerName}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      {/* Details Dialog */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Booking Details</DialogTitle>
+            <DialogDescription>Complete information about booking #{selectedBooking?.id}</DialogDescription>
+          </DialogHeader>
+          {selectedBooking && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="font-semibold">Service</p>
+                  <p>{selectedBooking.service}</p>
+                </div>
+                <div>
+                  <p className="font-semibold">Status</p>
+                  <Badge variant={getStatusColor(selectedBooking.status)}>
+                    {selectedBooking.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="font-semibold">Date</p>
+                  <p>{new Date(selectedBooking.date).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="font-semibold">Time</p>
+                  <p>{selectedBooking.time}</p>
+                </div>
+                <div>
+                  <p className="font-semibold">Amount</p>
+                  <p>₹{selectedBooking.amount}</p>
+                </div>
+                {selectedBooking.rating && (
+                  <div>
+                    <p className="font-semibold">Rating</p>
+                    <p>{'⭐'.repeat(selectedBooking.rating)}</p>
+                  </div>
+                )}
+              </div>
+
+              {selectedBooking.workerName && (
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="font-semibold mb-2">Worker Information</p>
+                  <p className="text-sm"><strong>Name:</strong> {selectedBooking.workerName}</p>
+                  <p className="text-sm"><strong>Phone:</strong> {selectedBooking.workerPhone}</p>
+                </div>
+              )}
+
+              {selectedBooking.otp && (
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="font-semibold mb-2">Service Completion OTP</p>
+                  <p className="text-2xl font-mono">{selectedBooking.otp}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Share this OTP with the worker when service is completed
+                  </p>
+                </div>
+              )}
+
+              {selectedBooking.completionImage && (
+                <div>
+                  <p className="font-semibold mb-2">Completion Image</p>
+                  <img 
+                    src={selectedBooking.completionImage} 
+                    alt="Completion" 
+                    className="w-full rounded-lg"
+                  />
+                </div>
+              )}
+
+              {selectedBooking.usedComponents && (
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <p className="font-semibold mb-2">Components & Warranty</p>
+                  <div className="space-y-1 text-sm">
+                    <p><strong>Components Used:</strong> {selectedBooking.componentDetails}</p>
+                    <p><strong>Warranty Period:</strong> {selectedBooking.warrantyMonths} months</p>
+                    <p><strong>Valid Until:</strong> {selectedBooking.warrantyExpiry && new Date(selectedBooking.warrantyExpiry).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Footer />
+    </div>
+  );
+}

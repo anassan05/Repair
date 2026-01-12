@@ -1,0 +1,416 @@
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Label } from '@/components/ui/label';
+
+interface Booking {
+  id: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  service: string;
+  date: string;
+  time: string;
+  status: 'pending' | 'assigned' | 'in-progress' | 'completed' | 'cancelled';
+  workerId?: string;
+  workerName?: string;
+  amount: number;
+  otp?: string;
+  completionImage?: string;
+  rating?: number;
+  usedComponents?: boolean;
+  componentDetails?: string;
+  warrantyMonths?: number;
+  warrantyExpiry?: string;
+}
+
+interface Worker {
+  id: string;
+  name: string;
+  specialty: string;
+}
+
+export default function AdminBookingSummary() {
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedWorker, setSelectedWorker] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  // Mock data
+  const [bookings, setBookings] = useState<Booking[]>([
+    {
+      id: 'BK045',
+      customerId: 'CUST001',
+      customerName: 'John Doe',
+      customerPhone: '+91 9876543210',
+      service: 'AC Repair',
+      date: '2026-01-09',
+      time: '10:00 AM',
+      status: 'completed',
+      workerId: 'WKR001',
+      workerName: 'Rajesh Kumar',
+      amount: 3500,
+      otp: '123456',
+      completionImage: '/placeholder-completion.jpg',
+      rating: 5,
+      usedComponents: true,
+      componentDetails: 'Compressor, Gas Refill',
+      warrantyMonths: 12,
+      warrantyExpiry: '2027-01-09',
+    },
+    {
+      id: 'BK046',
+      customerId: 'CUST002',
+      customerName: 'Jane Smith',
+      customerPhone: '+91 9876543211',
+      service: 'Washing Machine Service',
+      date: '2026-01-11',
+      time: '2:00 PM',
+      status: 'assigned',
+      workerId: 'WKR002',
+      workerName: 'Amit Patel',
+      amount: 800,
+      otp: '789012',
+    },
+    {
+      id: 'BK047',
+      customerId: 'CUST003',
+      customerName: 'Mike Johnson',
+      customerPhone: '+91 9876543212',
+      service: 'Refrigerator Repair',
+      date: '2026-01-12',
+      time: '11:00 AM',
+      status: 'pending',
+      amount: 1500,
+    },
+  ]);
+
+  const workers: Worker[] = [
+    { id: 'WKR001', name: 'Rajesh Kumar', specialty: 'AC & Refrigerator' },
+    { id: 'WKR002', name: 'Amit Patel', specialty: 'Washing Machine' },
+  ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'default';
+      case 'in-progress': return 'secondary';
+      case 'assigned': return 'outline';
+      case 'pending': return 'secondary';
+      case 'cancelled': return 'destructive';
+      default: return 'default';
+    }
+  };
+
+  const filteredBookings = statusFilter === 'all' 
+    ? bookings 
+    : bookings.filter(b => b.status === statusFilter);
+
+  const handleAssignWorker = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setAssignDialogOpen(true);
+  };
+
+  const confirmAssignment = () => {
+    if (selectedBooking && selectedWorker) {
+      const worker = workers.find(w => w.id === selectedWorker);
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      setBookings(bookings.map(b => 
+        b.id === selectedBooking.id 
+          ? { ...b, status: 'assigned', workerId: selectedWorker, workerName: worker?.name, otp }
+          : b
+      ));
+      
+      setAssignDialogOpen(false);
+      setSelectedWorker('');
+    }
+  };
+
+  const viewDetails = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setDetailsOpen(true);
+  };
+
+  const stats = {
+    total: bookings.length,
+    pending: bookings.filter(b => b.status === 'pending').length,
+    active: bookings.filter(b => ['assigned', 'in-progress'].includes(b.status)).length,
+    completed: bookings.filter(b => b.status === 'completed').length,
+    revenue: bookings.filter(b => b.status === 'completed').reduce((sum, b) => sum + b.amount, 0),
+    withWarranty: bookings.filter(b => b.usedComponents).length,
+  };
+
+  return (
+    <div className="p-8">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold">Booking Management</h1>
+        <p className="text-muted-foreground">View and manage all service bookings</p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>Total</CardDescription>
+            <CardTitle className="text-3xl">{stats.total}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>Pending</CardDescription>
+            <CardTitle className="text-3xl">{stats.pending}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>Active</CardDescription>
+            <CardTitle className="text-3xl">{stats.active}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>Completed</CardDescription>
+            <CardTitle className="text-3xl">{stats.completed}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>Revenue</CardDescription>
+            <CardTitle className="text-2xl">₹{stats.revenue}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>Warranty</CardDescription>
+            <CardTitle className="text-3xl">{stats.withWarranty}</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-4 mb-6">
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Bookings</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="assigned">Assigned</SelectItem>
+            <SelectItem value="in-progress">In Progress</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Bookings Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Bookings</CardTitle>
+          <CardDescription>Manage and track service bookings</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Booking ID</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Service</TableHead>
+                <TableHead>Date & Time</TableHead>
+                <TableHead>Worker</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredBookings.map((booking) => (
+                <TableRow key={booking.id}>
+                  <TableCell className="font-mono">{booking.id}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{booking.customerName}</div>
+                      <div className="text-sm text-muted-foreground">{booking.customerPhone}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{booking.service}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div>{new Date(booking.date).toLocaleDateString()}</div>
+                      <div className="text-sm text-muted-foreground">{booking.time}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {booking.workerName ? (
+                      <div>
+                        <div className="font-medium">{booking.workerName}</div>
+                        <div className="text-sm text-muted-foreground">{booking.workerId}</div>
+                      </div>
+                    ) : (
+                      <Badge variant="outline">Not Assigned</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>₹{booking.amount}</TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusColor(booking.status)}>
+                      {booking.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => viewDetails(booking)}
+                      >
+                        Details
+                      </Button>
+                      {booking.status === 'pending' && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleAssignWorker(booking)}
+                        >
+                          Assign
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Assign Worker Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Worker</DialogTitle>
+            <DialogDescription>
+              Select a worker for booking #{selectedBooking?.id}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Service: {selectedBooking?.service}</Label>
+              <Label>Customer: {selectedBooking?.customerName}</Label>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="worker">Select Worker</Label>
+              <Select value={selectedWorker} onValueChange={setSelectedWorker}>
+                <SelectTrigger id="worker">
+                  <SelectValue placeholder="Choose a worker" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workers.map((worker) => (
+                    <SelectItem key={worker.id} value={worker.id}>
+                      {worker.name} - {worker.specialty}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmAssignment} disabled={!selectedWorker}>
+              Assign Worker
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Details Dialog */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Booking Details</DialogTitle>
+            <DialogDescription>Complete information for booking #{selectedBooking?.id}</DialogDescription>
+          </DialogHeader>
+          {selectedBooking && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="font-semibold">Customer</p>
+                  <p>{selectedBooking.customerName}</p>
+                  <p className="text-muted-foreground">{selectedBooking.customerPhone}</p>
+                </div>
+                <div>
+                  <p className="font-semibold">Service</p>
+                  <p>{selectedBooking.service}</p>
+                </div>
+                <div>
+                  <p className="font-semibold">Date & Time</p>
+                  <p>{new Date(selectedBooking.date).toLocaleDateString()}</p>
+                  <p>{selectedBooking.time}</p>
+                </div>
+                <div>
+                  <p className="font-semibold">Amount</p>
+                  <p>₹{selectedBooking.amount}</p>
+                </div>
+                <div>
+                  <p className="font-semibold">Status</p>
+                  <Badge variant={getStatusColor(selectedBooking.status)}>
+                    {selectedBooking.status}
+                  </Badge>
+                </div>
+                {selectedBooking.rating && (
+                  <div>
+                    <p className="font-semibold">Rating</p>
+                    <p>{'⭐'.repeat(selectedBooking.rating)}</p>
+                  </div>
+                )}
+              </div>
+
+              {selectedBooking.workerName && (
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="font-semibold mb-2">Assigned Worker</p>
+                  <p className="text-sm"><strong>Name:</strong> {selectedBooking.workerName}</p>
+                  <p className="text-sm"><strong>ID:</strong> {selectedBooking.workerId}</p>
+                </div>
+              )}
+
+              {selectedBooking.otp && (
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="font-semibold mb-2">Customer OTP</p>
+                  <p className="text-2xl font-mono">{selectedBooking.otp}</p>
+                </div>
+              )}
+
+              {selectedBooking.completionImage && (
+                <div>
+                  <p className="font-semibold mb-2">Completion Image</p>
+                  <img 
+                    src={selectedBooking.completionImage} 
+                    alt="Completion" 
+                    className="w-full rounded-lg"
+                  />
+                </div>
+              )}
+
+              {selectedBooking.usedComponents && (
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <p className="font-semibold mb-2">Components & Warranty</p>
+                  <div className="space-y-1 text-sm">
+                    <p><strong>Components Used:</strong> {selectedBooking.componentDetails}</p>
+                    <p><strong>Warranty Period:</strong> {selectedBooking.warrantyMonths} months</p>
+                    <p><strong>Valid Until:</strong> {selectedBooking.warrantyExpiry && new Date(selectedBooking.warrantyExpiry).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
